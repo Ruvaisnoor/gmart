@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "326337355772",
+    "project_id": "calicut-university-1b641",
+    "storage_bucket": "calicut-university-1b641.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:326337355772:android:ae589021cc952403505c79",
+        "android_client_info": {
+          "package_name": "com.example.calicut_university"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhjls-EAwbGEtRTJNraxUixbY4yj98_cQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

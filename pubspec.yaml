@@ -1,0 +1,36 @@
+name: calicut_university
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.4 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_sign_in: ^6.2.1
+  cloud_firestore: ^5.6.9
+  google_fonts: ^6.2.1
+  http: ^1.4.0
+  flutter_facebook_auth: ^7.1.2
+  firebase_auth: ^5.6.0
+  firebase_core: ^3.14.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - asset/images/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "asset/images/logo1.jpg"
