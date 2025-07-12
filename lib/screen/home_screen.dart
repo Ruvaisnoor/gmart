@@ -1,315 +1,337 @@
+// lib/screens/home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:calicut_university/data/cart_data.dart';
+import 'package:calicut_university/data/wishlist_data.dart';
+import 'package:calicut_university/services/product_service.dart';
+import '../models/product.dart';
+import '../widgets/gradient_background.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  User? user = FirebaseAuth.instance.currentUser;
-  List<dynamic> products = [];
+  final User? user = FirebaseAuth.instance.currentUser;
+  int _selectedIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchProducts();
+  final categories = const [
+    Icons.checkroom,
+    Icons.phone_iphone,
+    Icons.chair,
+    Icons.brush,
+    Icons.shopping_basket,
+  ];
+  final labels = const [
+    'Fashion',
+    'Electronics',
+    'Home',
+    'Beauty',
+    'Grocery',
+  ];
+
+  void _onTabTapped(int index) {
+    switch (index) {
+      case 1:
+        Navigator.pushNamed(context, '/wishlist');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/cart');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/profile');
+        break;
+      default:
+        setState(() => _selectedIndex = index);
+    }
   }
 
-  Future<void> fetchProducts() async {
-    final url = Uri.parse('https://fakestoreapi.in/api/products');
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
-      final decoded = json.decode(response.body);
-      print(decoded); // Debug: inspect the JSON response structure
-      setState(() {
-        products = decoded is List ? decoded : decoded['products'] ?? [];
-      });
-    } else {
-      print('Failed to load products');
-    }
+  Widget _buildBadgeIcon(IconData icon, int count, Color badgeColor) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        if (count > 0)
+          Positioned(
+            right: -6,
+            top: -6,
+            child: CircleAvatar(
+              radius: 8,
+              backgroundColor: badgeColor,
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return GradientBackground(
+      colors: const [
+        Color(0xFF4CAF50),
+        Color.fromARGB(221, 190, 234, 175),
+      ],
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(120),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-            title: Text(
-              "Gmart",
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          leadingWidth: 100,
+          leading: const Padding(
+            padding: EdgeInsets.only(left: 16),
+            child: Image(
+              image: AssetImage('asset/images/logo.png'),
+              height: 40,
+              fit: BoxFit.contain,
             ),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.logout),
-                onPressed: () async {
-                  await FirebaseAuth.instance.signOut();
-                  Navigator.pushReplacementNamed(context, '/login');
-                },
-              ),
-            ],
-            flexibleSpace: ClipPath(
-              clipper: CurvedAppBarClipper(),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.deepOrange, Colors.redAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+          ),
+          actions: [
+            if (user?.photoURL != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundImage: NetworkImage(user!.photoURL!),
                 ),
               ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacementNamed(context, '/login');
+              },
             ),
-          ),
+          ],
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              HeaderSection(user: user),
-              const SizedBox(height: 10),
-              // Display grid header
-              Text(
-                "Products",
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(color: Colors.white, fontFamily: 'Poppins'),
-              ),
-              const SizedBox(height: 10),
-              ProductsGrid(products: products)
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+        body: FutureBuilder<List<Product>>(
+          future: ProductService.fetchProducts(),
+          builder: (ctx, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snap.hasError) {
+              return Center(child: Text('Error: ${snap.error}'));
+            }
 
-/// Custom clipper to create a curved bottom edge for the AppBar.
-class CurvedAppBarClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 50);
-    path.quadraticBezierTo(
-      size.width / 2, size.height, 
-      size.width, size.height - 50,
-    );
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-  
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-/// A full screen gradient background.
-class GradientBackground extends StatelessWidget {
-  final Widget child;
-  const GradientBackground({Key? key, required this.child}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.black87, Colors.redAccent.shade400],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: child,
-    );
-  }
-}
-
-/// Displays the user's avatar.
-class HeaderSection extends StatelessWidget {
-  final User? user;
-  const HeaderSection({Key? key, this.user}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (user?.photoURL != null)
-          CircleAvatar(
-            radius: 40,
-            backgroundImage: NetworkImage(user!.photoURL!),
-          ),
-        const SizedBox(height: 20),
-      ],
-    );
-  }
-}
-
-/// A grid view to display products in an arranged style.
-class ProductsGrid extends StatelessWidget {
-  final List<dynamic> products;
-  const ProductsGrid({Key? key, required this.products}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // Styles for product title and price.
-    final titleStyle = TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: Colors.black87,
-    );
-    final priceStyle = TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 14,
-      color: Colors.black54,
-    );
-
-    if (products.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(), // Use inherent scrolling of SingleChildScrollView
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, // Display two items per row
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.7, // Adjust for card height
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return GestureDetector(
-          onTap: () {
-            // Navigate to the product details page with the product object.
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProductDetailsPage(product: product),
-              ),
-            );
-          },
-          child: Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            color: Colors.white.withOpacity(0.9),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: Image.network(
-                        product['image'],
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Icon(Icons.error),
+            final products = snap.data!;
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Promo Banner
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.lightGreen, Color.fromARGB(255, 56, 142, 60)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Exclusive Deals!",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "Hurry! Limited-time offers.",
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
                       ),
+                      ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                        child: const Text(
+                          "Shop Now",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Categories
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text("Categories",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
+                    Text("See All", style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 90,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 16),
+                    itemBuilder: (_, i) => Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.white,
+                          child: Icon(categories[i],
+                              color: Colors.greenAccent),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(labels[i],
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white)),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    product['title'] ?? 'No Title',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: titleStyle,
-                    textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                // Popular Products Grid
+                const Text("Popular Products",
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+                const SizedBox(height: 12),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: products.length,
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.7,
                   ),
-                  const SizedBox(height: 4),
-                  Text("₹${product['price']}", style: priceStyle),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
+                  itemBuilder: (ctx, i) {
+                    final p = products[i];
+                    return GestureDetector(
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/details',
+                        arguments: p,
+                      ),
+                      child: Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        color: Colors.transparent,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.lightGreen, Color.fromARGB(255, 57, 145, 61)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      p.image,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      errorBuilder: (_, __, ___) =>
+                                          const Icon(Icons.broken_image),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  p.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "₹${p.price.toStringAsFixed(2)}",
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.star,
+                                        size: 14, color: Colors.yellow),
+                                    const SizedBox(width: 4),
+                                    Text(p.rating.toString(),
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
 
-/// A simple product details page.
-class ProductDetailsPage extends StatelessWidget {
-  final dynamic product;
-  const ProductDetailsPage({Key? key, required this.product}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    // Extract product details.
-    final String title = product['title'] ?? 'No Title';
-    final String price =
-        product['price'] != null ? "₹${product['price']}" : '';
-    final String description =
-        product['description'] ?? 'No description available.';
-    final String imageUrl = product['image'] ?? '';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title, style: TextStyle(fontFamily: 'Poppins')),
-        backgroundColor: Colors.deepOrange,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      height: 250,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Icon(Icons.error, size: 100),
-                    )
-                  : Container(),
+        // Bottom Navigation with Badges
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          selectedItemColor: Colors.greenAccent,
+          unselectedItemColor: Colors.grey,
+          onTap: _onTabTapped,
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(Icons.favorite_border, wishlist.length, Colors.red),
+              label: "Wishlist",
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold),
+            BottomNavigationBarItem(
+              icon: _buildBadgeIcon(Icons.shopping_cart_outlined, cart.length, Colors.greenAccent),
+              label: "Cart",
             ),
-            const SizedBox(height: 8),
-            Text(
-              price,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 20,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              description,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 16,
-              ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              label: "Profile",
             ),
           ],
         ),

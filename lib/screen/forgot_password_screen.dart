@@ -1,69 +1,103 @@
+// lib/screens/forgot_password_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({Key? key}) : super(key: key);
+
   @override
-  _ForgotPasswordScreenState createState() => _ForgotPasswordScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final AuthService _authService = AuthService();
-  final TextEditingController _emailController = TextEditingController();
+  final AuthService _authService     = AuthService();
+  final TextEditingController _emailC = TextEditingController();
   bool isEmailSent = false;
 
   Future<void> _handleResetPassword() async {
-    await _authService.resetPassword(_emailController.text);
-    setState(() {
-      isEmailSent = true;
-    });
+    await _authService.resetPassword(_emailC.text.trim());
+    setState(() => isEmailSent = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    double screenWidth = size.width;
-    double screenHeight = size.height;
+    final size        = MediaQuery.of(context).size;
+    final w           = size.width;
+    final h           = size.height;
+    const topColor    = Color(0xFF4CAF50);
+    const bottomColor = Color.fromARGB(221, 190, 234, 175);
 
     return Scaffold(
       body: Container(
-        width: screenWidth,
-        height: screenHeight,
-        decoration: BoxDecoration(
+        width:  w,
+        height: h,
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.black87, Colors.redAccent.shade400],
             begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            end:   Alignment.bottomCenter,
+            colors: [ topColor, bottomColor ],
           ),
         ),
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.07, vertical: screenHeight * 0.07),
+          padding: EdgeInsets.symmetric(
+            horizontal: w * 0.07,
+            vertical:   h * 0.07,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(height: screenHeight * 0.08),
+              SizedBox(height: h * 0.08),
               Text(
                 "Reset Password",
                 style: GoogleFonts.poppins(
-                  fontSize: screenWidth * 0.08,
+                  fontSize: w * 0.08,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: screenHeight * 0.05),
-              _buildInputField(_emailController, "Email", Icons.email, screenWidth),
-              SizedBox(height: screenHeight * 0.05),
-              _buildButton("RESET PASSWORD", _handleResetPassword, screenWidth, Colors.redAccent),
-              SizedBox(height: screenHeight * 0.05),
+              SizedBox(height: h * 0.05),
+
+              // Email Input
+              _buildInputField(
+                controller: _emailC,
+                hint:       "Email",
+                icon:       Icons.email,
+                width:      w,
+              ),
+              SizedBox(height: h * 0.05),
+
+              // Reset Button
+              _buildButton(
+                label:   "RESET PASSWORD",
+                onTap:   _handleResetPassword,
+                width:   w,
+                color:   Colors.greenAccent,
+              ),
+              SizedBox(height: h * 0.03),
+
+              // Confirmation Message
               if (isEmailSent)
                 Text(
                   "✅ Reset link sent to your email!",
-                  style: TextStyle(color: Colors.greenAccent, fontSize: screenWidth * 0.045),
+                  style: TextStyle(
+                    color: Colors.greenAccent,
+                    fontSize: w * 0.045,
+                  ),
                 ),
-              SizedBox(height: screenHeight * 0.05),
+              SizedBox(height: h * 0.05),
+
+              // Back to Login
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("Back to Login", style: TextStyle(color: Colors.white, fontSize: screenWidth * 0.04)),
+                child: Text(
+                  "Back to Login",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: w * 0.04,
+                  ),
+                ),
               ),
             ],
           ),
@@ -72,38 +106,64 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  Widget _buildInputField(TextEditingController controller, String hint, IconData icon, double screenWidth) {
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String               hint,
+    required IconData             icon,
+    required double               width,
+  }) {
     return Container(
-      width: screenWidth * 0.85,
+      width: width * 0.85,
       child: TextField(
         controller: controller,
-        style: TextStyle(fontSize: screenWidth * 0.045, color: Colors.white),
+        style: TextStyle(
+          fontSize: width * 0.045,
+          color: Colors.white,
+        ),
         decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.15),
-          hintText: hint,
-          hintStyle: TextStyle(fontSize: screenWidth * 0.04, color: Colors.white70),
-          prefixIcon: Icon(icon, color: Colors.white70, size: screenWidth * 0.06),
+          filled:     true,
+          fillColor:  Colors.white.withOpacity(0.15),
+          hintText:   hint,
+          hintStyle:  TextStyle(
+            fontSize: width * 0.04,
+            color: Colors.white70,
+          ),
+          prefixIcon: Icon(icon, color: Colors.white70, size: width * 0.06),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(25),
-              borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(25),
+            borderSide:    BorderSide.none,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildButton(String label, VoidCallback onPressed, double screenWidth, Color color) {
+  Widget _buildButton({
+    required String       label,
+    required VoidCallback onTap,
+    required double       width,
+    required Color        color,
+  }) {
     return Container(
-      width: screenWidth * 0.85,
+      width: width * 0.85,
       child: ElevatedButton(
-        onPressed: onPressed,
-        child: Text(label, style: TextStyle(fontSize: screenWidth * 0.05, fontWeight: FontWeight.bold)),
+        onPressed: onTap,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: width * 0.05,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-          padding: EdgeInsets.symmetric(vertical: screenWidth * 0.035),
-          elevation: 4,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          padding: EdgeInsets.symmetric(vertical: width * 0.035),
         ),
       ),
     );
